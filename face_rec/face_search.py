@@ -11,11 +11,12 @@ def count_distance(filename, pth, unknown_face):
     
     known_picture = face_recognition.load_image_file(pth + '/' + filename)
     known_picture_encoding = face_recognition.face_encodings(known_picture)
-                                                          # cчитаем дистанции от неизвестного лица до каждого лица
-    for known_face_encoding in known_picture_encoding:    # на картинках из профилей
-        distances.append(face_recognition.face_distance([known_face_encoding], unknown_face))
 
-    if len(distances) > 0:
+    if len(known_picture_encoding) != 0:
+                                                              # cчитаем дистанции от неизвестного лица до каждого лица
+        for known_face_encoding in known_picture_encoding:    # на картинках из профилей
+            distances.append(face_recognition.face_distance([known_face_encoding], unknown_face))
+
         res_dict[filename] = min(distances)[0]  # ставим в соответствие id пользователя
                                                 # минимальную из найденных дистанций
 
