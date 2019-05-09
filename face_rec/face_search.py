@@ -15,8 +15,9 @@ def count_distance(filename, pth, unknown_face):
     for known_face_encoding in known_picture_encoding:    # на картинках из профилей
         distances.append(face_recognition.face_distance([known_face_encoding], unknown_face))
 
-    res_dict[filename] = min(distances)[0]  # ставим в соответствие id пользователя
-                                            # минимальную из найденных дистанций
+    if len(distances) > 0:
+        res_dict[filename] = min(distances)[0]  # ставим в соответствие id пользователя
+                                                # минимальную из найденных дистанций
 
 def get_distances(path_to_dir, unknown_face_enc):
     p = Pool(1)  #  нужно будет поставить побольше в окончательном варианте
