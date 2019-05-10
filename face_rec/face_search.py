@@ -1,30 +1,30 @@
 from multiprocessing import Process, Manager, Pool
 import face_recognition
 import functools
+import cv2
 import os
 
+
+ALLOWED_FORMATS = {'.jpg', '.jpeg', '.png'}
 
 res_dict = Manager().dict()
 
 
 def count_distance(filename, pth, unknown_face):
 
-    if filename[-3:] == 'jpg':
-        distances = []
+    fileformat = os.path.splitext(filename)[1]
+
+    if fileformat in ALLOWED_FORMATS:
         known_picture = face_recognition.load_image_file(pth + '/' + filename)
+        known_picture = cv2.resize(known_picture, (0, 0), fx=0.55, fy=0.55)
         known_picture_encoding = face_recognition.face_encodings(known_picture)
 
-# cчитаем дистанции от неизвестного лица до каждого лица на картинках из профилей
-        for known_face_encoding in known_picture_encoding:
-            distances.append(face_recognition.face_distance([known_face_encoding], unknown_face))
-
-# ставим в соответствие id пользователя минимальную из найденных дистанций
-        if len(distances) > 0:
-            res_dict[filename] = min(distances)[0]
-
+        if len(known_picture_encoding) == 1: #  обрабатываем аватарки только с одним лицом
+            known_face_encoding = known_picture_encoding[0]
+            res_dict[filename] = face_recognition.face_distance([known_face_encoding], unknown_face)[0]
 
 def get_distances(path_to_dir, unknown_face_enc):
-    p = Pool(8)
+    p = Pool(15)
     list_of_images = os.listdir(path_to_dir)
     p.map(functools.partial(count_distance, pth=path_to_dir, unknown_face=unknown_face_enc), list_of_images)
 
