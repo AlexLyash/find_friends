@@ -2,11 +2,12 @@ import face_recognition
 import os
 
 
-def find_person(path_to_unknown_face, indexer, threshold=0.7):
+def find_person(path_to_unknown_face, indexer, mapper, threshold=0.7):
     '''
     Функция находит лицо на фото, кодирует его и ищет похожие лица
     :param path_to_unknown_face: путь до картинки с человеком, которого ищем
     :param indexer: объект annoy.Annoy, обученный на известных лицах
+    :param mapper: словарь, который ставит в соответствие номеру вектора из indexer id пользователя
     :param threshold: порог, выше которого лица считаются похожими
     :return: словарь, в котором ключ - id найденных пользователей, значение - насколько найденные лица
         близки к искомому(чем больше значение, тем ближе); None, если нет похожих лиц
@@ -29,9 +30,10 @@ def find_person(path_to_unknown_face, indexer, threshold=0.7):
             unknown_face_encoding = unknown_picture_encoding[0]
             most_similar = list(indexer.get_nns_by_vector(unknown_face_encoding, 5, include_distances=True))
 
-            for (user_id, distance) in zip(*most_similar):
+            for (counter, distance) in zip(*most_similar):
                 similarity = 1 - distance ** 2 / 2
                 if similarity >= threshold:
+                    user_id = mapper[counter]
                     users_dict[user_id] = similarity
                 else:
                     continue
