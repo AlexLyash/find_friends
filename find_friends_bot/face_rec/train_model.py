@@ -19,8 +19,9 @@ def count_encodings_dict(data:dict):
     #files = glob.iglob(pth + '/*')
 
     for user_id, photo in data.items():
-           
-#            known_picture = face_recognition.load_image_file(photo)
+
+        if photo.ndim == 3:
+
             known_picture = cv2.resize(photo, (0, 0), fx=0.55, fy=0.55)
             known_picture_encoding = face_recognition.face_encodings(known_picture)
 
@@ -29,7 +30,8 @@ def count_encodings_dict(data:dict):
                 user_id_face_enc_emb.add_item(counter, known_face_encoding)
                 map_counter_2_user_id[counter] = user_id
                 counter += 1
-
+        else:
+            print('strange photo, used_id =', user_id)
     return map_counter_2_user_id, user_id_face_enc_emb
 
 

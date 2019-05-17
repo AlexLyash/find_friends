@@ -62,15 +62,17 @@ def listen():
     vk_me = login_vk(token=token_me)
     
     longpoll = VkLongPoll(vk)
-    
+    bot = VkBot(vk_me, vk)
     
     # основной цикл
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             print('New message:')
             print(f'For me by: {event.user_id}', end='')
-    
-            bot = VkBot(vk_me, vk, event.user_id, event.message_id)
+            
+            bot.user_id = event.user_id
+            bot.message_id = event.message_id
+            #bot = VkBot(vk_me, vk, event.user_id, event.message_id)
     
             write_msg(vk, event.user_id, bot.new_message(event.text))
     

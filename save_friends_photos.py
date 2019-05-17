@@ -1,5 +1,6 @@
 import requests
 import os
+import imageio
 
 
 # друзья могут повторяться
@@ -23,6 +24,7 @@ def save_photos(friends, user_id):
     :param: friends - словарь с друзьями
     :param user_id
     '''
+    photo_dict = {}
     for friend in friends:
         try:
             friend['photo_200']
@@ -32,13 +34,11 @@ def save_photos(friends, user_id):
                 friend['photo_200'] == "https://vk.com/images/deactivated_200.png" or \
                 friend['photo_200'] is None:
             continue
-        photo_dir = "friends_photos" + str(user_id)
-        if not os.path.exists(photo_dir):
-            os.makedirs(photo_dir)
-        photo_name = photo_dir + "/" + str(friend['id']) + ".jpg"
-        photo = requests.get(friend['photo_200']).content
-        with open(photo_name, 'wb') as handler:
-            handler.write(photo)
+        photo_bytes = requests.get(friend['photo_200']).content
+        photo = imageio.imread(photo_bytes)
+        photo_dict[friend['id']] = photo
+    print(list(photo_dict.keys())[:10])
+    return photo_dict
 
 
 def get_friends(vk, user_id):
@@ -74,3 +74,4 @@ def get_friends_of_friends(vk, user_id):
     friends_non_repeating = delete_repeating(friends)
 
     return friends_non_repeating
+

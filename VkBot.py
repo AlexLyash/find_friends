@@ -24,11 +24,12 @@ def save_unknown_photo(photo_url, photo_dir):
 
 class VkBot:
 
-    def __init__(self, vk_user, bot_vk, user_id, message_id):
+    def __init__(self, vk_user, bot_vk, user_id=None, message_id=None):
         self.bot_vk = bot_vk
         self.vk_user = vk_user
         self.user_id = user_id
         self.message_id = message_id
+        self.photo_data = None
         self.commands = ["HELLO", "PHOTO", "TAKE FRIENDS", "TAKE FRIENDS OF FRIENDS", "FIND PERSON", "GOODBYE"]
 
     def take_photo(self):
@@ -39,11 +40,11 @@ class VkBot:
 
     def get_friends(self):
         friends = get_friends(self.vk_user, self.user_id)
-        save_photos(friends, self.user_id)
+        self.photo_data = save_photos(friends, self.user_id)
 
     def get_friends_of_friends(self):
         friends = get_friends_of_friends(self.vk_user, self.user_id)
-        save_photos(friends, self.user_id)
+        self.photo_data = save_photos(friends, self.user_id)
 
     def new_message(self, message):
         # Привет
@@ -68,9 +69,9 @@ class VkBot:
         # Пока
 
         elif message.upper() == self.commands[4]:
-            if ("friends_photos" + str(self.user_id)) in os.listdir() and 'unknown_photos' in os.listdir():
-                face_folder='friends_photos' + str(self.user_id)
-                mapper, indexer = train_model.get_indexer(path_to_known_faces=face_folder)
+            if self.photo_data is not None:
+                #face_folder='friends_photos' + str(self.user_id)
+                mapper, indexer = train_model.get_indexer(path_to_known_faces=self.photo_data)
                 ans = search.find_person(path_to_unknown_face='unknown_photos/unknown_photo.jpg', indexer=indexer,
                                                                                               mapper=mapper)
                 print(ans)
@@ -85,7 +86,7 @@ class VkBot:
             return f"Бывай!"
 
         else:
-            return "Не понял!,\n Вот список команд:\n 1.{}\n2.{}\n3.{}\n4.{}\n5.{}\n6.{}\n".format(
+            return "Не понял! \n Вот список команд:\n 1.{}\n2.{}\n3.{}\n4.{}\n5.{}\n6.{}\n".format(
                 self.commands[0], self.commands[1], self.commands[2], self.commands[3],
                 self.commands[4], self.commands[5]
             )
