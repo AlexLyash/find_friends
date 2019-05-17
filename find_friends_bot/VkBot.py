@@ -1,69 +1,92 @@
 import vk_api
+import urllib
+import requests
+import os
+from face_rec import search, train_model
+
+from save_friends_photos import get_friends, get_friends_of_friends, save_photos
+
+
+def get_upload_server():
+    r = requests.get('')
+
+
+def save_unknown_photo(photo_url, photo_dir):
+    if not os.path.exists(photo_dir):
+        os.makedirs(photo_dir)
+
+    photo_name = photo_dir + "/unknown_photo.jpg"
+    photo = requests.get(photo_url).content
+    with open(photo_name, 'wb') as handler:
+        handler.write(photo)
+
 
 
 class VkBot:
 
-    def __init__(self, user_id, vk):
-
+    def __init__(self, vk_user, bot_vk, user_id=None, message_id=None):
+        self.bot_vk = bot_vk
+        self.vk_user = vk_user
         self.user_id = user_id
-        self.vk = vk
+        self.message_id = message_id
+        self.photo_data = None
+        self.commands = ["HELLO", "PHOTO", "TAKE FRIENDS", "TAKE FRIENDS OF FRIENDS", "FIND PERSON", "GOODBYE"]
 
-        self.commands = ["ПРИВЕТ", "ДРУЗЬЯ", "ДРУЗЬЯ ДРУЗЕЙ", "ПОКА"]
+    def take_photo(self):
+        msg = self.bot_vk.method('messages.getById', {'message_ids': self.message_id})
+        photo_url = msg['items'][0]['attachments'][0]['photo']['sizes'][2]['url']
+        photo_dir = "unknown_photos"
+        save_unknown_photo(photo_url, photo_dir)
 
     def get_friends(self):
-        try:
-            friends = self.vk.friends.get(user_id=self.user_id, fields='photo_200_orig')
-            friends = friends['items']
-        except:
-            friends = [{'id': None,
-                        'first_name': None,
-                        'last_name': None,
-                        'is_closed': None,
-                        'can_access_closed': None,
-                        'photo_200_orig': None,
-                        'online': None}]
+        friends = get_friends(self.vk_user, self.user_id)
+        self.photo_data = save_photos(friends, self.user_id)
 
-        friends_temp = [d['id'] for d in friends if 'id' in d]
-        return friends_temp
-
-    @staticmethod
-    def _clean_all_tag_from_str(string_line):
-        """
-        Очистка строки stringLine от тэгов и их содержимых
-        :param string_line: Очищаемая строка
-        :return: очищенная строка
-        """
-        result = ""
-        not_skip = True
-        for i in list(string_line):
-            if not_skip:
-                if i == "<":
-                    not_skip = False
-                else:
-                    result += i
-            else:
-                if i == ">":
-                    not_skip = True
-
-        return result
+    def get_friends_of_friends(self):
+        friends = get_friends_of_friends(self.vk_user, self.user_id)
+        self.photo_data = save_photos(friends, self.user_id)
 
     def new_message(self, message):
-
         # Привет
         if message.upper() == self.commands[0]:
             return f"Здарова!"
 
-        # Погода
+        # Взять фотографию у пользователя
         elif message.upper() == self.commands[1]:
-            return str(self.get_friends())
+            self.take_photo()
+            return "ваше фото сохранено"
 
-        # Время
+        # Сохранить друзей в файл
         elif message.upper() == self.commands[2]:
-            return self.commands
+            self.get_friends()
+            return f"Друзья Сохранены в Папку: " + "friends_photos" + str(self.user_id)
+
+        # Сохранить друзей и друзей друзей в файл
+        elif message.upper() == self.commands[3]:
+            self.get_friends_of_friends()
+            return f"Друзья Друзей Сохранены в Папку: " + "friends_photos" + str(self.user_id)
 
         # Пока
-        elif message.upper() == self.commands[3]:
+
+        elif message.upper() == self.commands[4]:
+            if self.photo_data is not None:
+                #face_folder='friends_photos' + str(self.user_id)
+                mapper, indexer = train_model.get_indexer(path_to_known_faces=self.photo_data)
+                ans = search.find_person(path_to_unknown_face='unknown_photos/unknown_photo.jpg', indexer=indexer,
+                                                                                              mapper=mapper)
+                print(ans)
+                try:
+                    return 'vk.com/id' + str(list(ans.keys())[0])
+                except:
+                    return 'Совпадений не найдено'
+            else:
+                return "Сначала нужно загрузить фото(команда 2) и указать список для поиска(команды 3 или 4)"
+
+        elif message.upper() == self.commands[5]:
             return f"Бывай!"
 
         else:
-            return "Не понял!"
+            return "Не понял! \n Вот список команд:\n 1.{}\n2.{}\n3.{}\n4.{}\n5.{}\n6.{}\n".format(
+                self.commands[0], self.commands[1], self.commands[2], self.commands[3],
+                self.commands[4], self.commands[5]
+            )
