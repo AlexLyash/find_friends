@@ -1,11 +1,12 @@
 import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
+import random
 
 from VkBot import VkBot
 
-
 API_VERSION = '5.92'
 APP_ID = 6973103
+
 
 # 2FA обработчик
 def auth_handler():
@@ -20,6 +21,7 @@ def captcha_handler(captcha):
     return captcha.try_again(key)
 
 
+# для регистрации пользователя через которого будет качать данные
 def login_vk(token=None, login=None, password=None):
     try:
         if token:
@@ -36,48 +38,42 @@ def login_vk(token=None, login=None, password=None):
     except Exception as e:
         print(e)
 
+
+# получение токена из файла
 def get_token(file_path):
     with open(file_path) as file:
         token = file.read()
     return token
 
 
-def write_msg(user_id, message):
-    vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0})
+# метод для отправки сообщений
+def write_msg(vk, user_id, message):
+    random_id = random.randint(0, 10e20)
+    vk.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': random_id})
 
 
-# API-ключ
-token = get_token("vk_bot_token.txt")
-# token = '82ae80bf32f3ed5e1b363a287516063a4440ef2cbd14de516314b3c590dc3ea75ffe2574ee9e90ea5eecf'
-# Авторизуемся как сообщество
-vk_session = vk_api.VkApi(token=token, app_id=APP_ID)
+# API-ключи
+token_group = get_token("tokens/vk_bot_token.txt")
+token_me = get_token("tokens/my_token.txt")
 
-longpoll = VkLongPoll(vk_session)
-
-vk = vk_session.get_api()
-
-for event in longpoll.listen():
-
-    if event.type == VkEventType.MESSAGE_NEW:
-
-        if event.to_me:
-
+def listen():
+    # авторизация
+    vk = vk_api.VkApi(token=token_group)
+    vk_me = login_vk(token=token_me)
+    
+    longpoll = VkLongPoll(vk)
+    bot = VkBot(vk_me, vk)
+    
+    # основной цикл
+    for event in longpoll.listen():
+        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             print('New message:')
-            print(f'For me by: {event.user_id}', end=' ')
-
-            # bot = VkBot(event.user_id, vk)
-
-            friends = vk.users.get(user_id=event.user_id, fields='photo_200')
-            response = str(friends[0]['photo_200'])
-            write_msg(event.user_id, response)
-            print(response)
-            print()
-            # friends = friends['items']
-            #
-            # friends_temp = [d['id'] for d in friends if 'id' in d]
-            # bot.new_message(event.text)
-            # write_msg(event.user_id, str(friends_temp))
-
+            print(f'For me by: {event.user_id}', end='')
+            
+            bot.user_id = event.user_id
+            bot.message_id = event.message_id
+            #bot = VkBot(vk_me, vk, event.user_id, event.message_id)
+    
+            write_msg(vk, event.user_id, bot.new_message(event.text))
+    
             print('Text: ', event.text)
-
-
