@@ -77,7 +77,7 @@ class VkBot:
                 try:
                     return 'vk.com/id' + str(list(ans.keys())[0])
                 except:
-                    return f'Совпадений не найдено'
+                    return 'Совпадений не найдено'
             else:
                 return "Сначала нужно загрузить фото(команда 2) и указать список для поиска(команды 3 или 4)"
 
