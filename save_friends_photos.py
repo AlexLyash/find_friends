@@ -1,7 +1,11 @@
 import requests
 import imageio
 import time
+import multiprocessing 
+from itertools import product
 
+manager = multiprocessing.Manager()
+shared_dict = manager.dict()
 
 # друзья могут повторяться
 def delete_repeating(l):
@@ -17,6 +21,12 @@ def delete_repeating(l):
     return n
 
 
+def download_photo(d, user_id: str, friend_id: str, url: str):
+    photo_bytes = requests.get(url).content
+    photo = imageio.imread(photo_bytes)
+    d[friend_id] = photo
+    
+    
 def save_photos(friends, user_id):
     '''
     сохранение фотографий в папку "friends_photos + user_id"
@@ -25,10 +35,11 @@ def save_photos(friends, user_id):
     :param user_id
     '''
     photo_dict = {}
-    photo_dict[str(user_id)] = {}
+#    photo_dict[str(user_id)] = {}
     i = 0
     start_time = time.time()
     print('Number of profiles =', len(friends))
+    tasks = []
     for friend in friends:
         try:
             friend['photo_200']
@@ -38,13 +49,12 @@ def save_photos(friends, user_id):
                 friend['photo_200'] == "https://vk.com/images/deactivated_200.png" or \
                 friend['photo_200'] is None:
             continue
-        photo_bytes = requests.get(friend['photo_200']).content
-        photo = imageio.imread(photo_bytes)
-        photo_dict[str(user_id)][friend['id']] = photo
-        if (i % 100 == 0):
-            print(i, ' photos downloaded')
-            print(time.time()-start_time)
-        i += 1
+        tasks.append((shared_dict, str(user_id), friend['id'], friend['photo_200']))
+    with multiprocessing.Pool(70) as p:
+        p.starmap(download_photo, tasks)
+    photo_dict[str(user_id)] = shared_dict
+    print('photos are downloaded')
+    print(time.time()-start_time)    
     return photo_dict
 
 
