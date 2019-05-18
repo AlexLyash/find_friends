@@ -66,7 +66,7 @@ class VkBot:
         # Пока
 
         elif message.upper() == self.commands[4]:
-            if (self.photo_data[str(self.user_id)] is not None) and (self.unknowns[str(self.user_id)] is not None):
+            if (self.photo_data.get(str(self.user_id)) is not None) and (self.unknowns.get(str(self.user_id)) is not None):
                 #face_folder='friends_photos' + str(self.user_id)
                 mapper, indexer = train_model.get_indexer(photos_data=self.photo_data[str(self.user_id)])
                 ans = search.find_person_dict(unk_photo=self.unknowns[str(self.user_id)], indexer=indexer, mapper=mapper)
