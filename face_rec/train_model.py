@@ -19,7 +19,9 @@ def count_encodings_dict(data:dict):
     #files = glob.iglob(pth + '/*')
 
     for user_id, photo in data.items():
-
+        
+        if photo.ndim == 2:
+            photo = cv2.cvtColor(photo,cv2.COLOR_GRAY2RGB)
         if photo.ndim == 3:
 
             known_picture = cv2.resize(photo, (0, 0), fx=0.55, fy=0.55)
@@ -36,13 +38,13 @@ def count_encodings_dict(data:dict):
 
 
 
-def get_indexer(path_to_known_faces, num_trees=10):
+def get_indexer(photos_data, num_trees=10):
     '''
     Функция строит деревья
     :param path_to_known_faces: путь до папки с пользователями, на которых будет учиться модель
     :param num_trees: число деревьев
     :return: словарь counter: id пользователя, индекс
     '''
-    map_counter_2_user_id, user_id_face_enc_emb = count_encodings_dict(path_to_known_faces)
+    map_counter_2_user_id, user_id_face_enc_emb = count_encodings_dict(photos_data)
     user_id_face_enc_emb.build(num_trees)
     return map_counter_2_user_id, user_id_face_enc_emb

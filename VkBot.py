@@ -1,14 +1,9 @@
-import vk_api
-import urllib
 import requests
 import os
+import imageio
 from face_rec import search, train_model
 
 from save_friends_photos import get_friends, get_friends_of_friends, save_photos
-
-
-def get_upload_server():
-    r = requests.get('')
 
 
 def save_unknown_photo(photo_url, photo_dir):
@@ -29,22 +24,24 @@ class VkBot:
         self.vk_user = vk_user
         self.user_id = user_id
         self.message_id = message_id
-        self.photo_data = None
+        self.photo_data = {}
+        self.unknowns = {}
         self.commands = ["HELLO", "PHOTO", "TAKE FRIENDS", "TAKE FRIENDS OF FRIENDS", "FIND PERSON", "GOODBYE"]
 
     def take_photo(self):
         msg = self.bot_vk.method('messages.getById', {'message_ids': self.message_id})
         photo_url = msg['items'][0]['attachments'][0]['photo']['sizes'][2]['url']
-        photo_dir = "unknown_photos"
-        save_unknown_photo(photo_url, photo_dir)
+        self.unknowns[str(self.user_id)] = imageio.imread(requests.get(photo_url).content)
+        #photo_dir = "unknown_photos"
+        #save_unknown_photo(photo_url, photo_dir)
 
     def get_friends(self):
         friends = get_friends(self.vk_user, self.user_id)
-        self.photo_data = save_photos(friends, self.user_id)
+        self.photo_data.update(save_photos(friends, self.user_id))
 
     def get_friends_of_friends(self):
         friends = get_friends_of_friends(self.vk_user, self.user_id)
-        self.photo_data = save_photos(friends, self.user_id)
+        self.photo_data.update(save_photos(friends, self.user_id))
 
     def new_message(self, message):
         # Привет
@@ -69,11 +66,10 @@ class VkBot:
         # Пока
 
         elif message.upper() == self.commands[4]:
-            if self.photo_data is not None:
+            if (self.photo_data[str(self.user_id)] is not None) and (self.unknowns[str(self.user_id)] is not None):
                 #face_folder='friends_photos' + str(self.user_id)
-                mapper, indexer = train_model.get_indexer(path_to_known_faces=self.photo_data)
-                ans = search.find_person(path_to_unknown_face='unknown_photos/unknown_photo.jpg', indexer=indexer,
-                                                                                              mapper=mapper)
+                mapper, indexer = train_model.get_indexer(photos_data=self.photo_data[str(self.user_id)])
+                ans = search.find_person_dict(unk_photo=self.unknowns[str(self.user_id)], indexer=indexer, mapper=mapper)
                 print(ans)
                 try:
                     return 'vk.com/id' + str(list(ans.keys())[0])
@@ -86,7 +82,7 @@ class VkBot:
             return f"Бывай!"
 
         else:
-            return "Не понял! \n Вот список команд:\n 1.{}\n2.{}\n3.{}\n4.{}\n5.{}\n6.{}\n".format(
+            return "Не понял! \nВот список команд:\n1.{}\n2.{}\n3.{}\n4.{}\n5.{}\n6.{}\n".format(
                 self.commands[0], self.commands[1], self.commands[2], self.commands[3],
                 self.commands[4], self.commands[5]
             )

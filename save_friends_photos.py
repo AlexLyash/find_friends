@@ -1,6 +1,6 @@
 import requests
-import os
 import imageio
+import time
 
 
 # друзья могут повторяться
@@ -25,6 +25,10 @@ def save_photos(friends, user_id):
     :param user_id
     '''
     photo_dict = {}
+    photo_dict[str(user_id)] = {}
+    i = 0
+    start_time = time.time()
+    print('Number of profiles =', len(friends))
     for friend in friends:
         try:
             friend['photo_200']
@@ -36,8 +40,11 @@ def save_photos(friends, user_id):
             continue
         photo_bytes = requests.get(friend['photo_200']).content
         photo = imageio.imread(photo_bytes)
-        photo_dict[friend['id']] = photo
-    print(list(photo_dict.keys())[:10])
+        photo_dict[str(user_id)][friend['id']] = photo
+        if (i % 100 == 0):
+            print(i, ' photos downloaded')
+            print(time.time()-start_time)
+        i += 1
     return photo_dict
 
 
