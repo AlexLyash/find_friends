@@ -30,8 +30,12 @@ class VkBot:
 
     def take_photo(self):
         msg = self.bot_vk.method('messages.getById', {'message_ids': self.message_id})
-        photo_url = msg['items'][0]['attachments'][0]['photo']['sizes'][2]['url']
-        self.unknowns[str(self.user_id)] = imageio.imread(requests.get(photo_url).content)
+        try:
+            photo_url = msg['items'][0]['attachments'][0]['photo']['sizes'][2]['url']
+            self.unknowns[str(self.user_id)] = imageio.imread(requests.get(photo_url).content)
+            return 'Saved'
+        except IndexError:
+            return None
         #photo_dir = "unknown_photos"
         #save_unknown_photo(photo_url, photo_dir)
 
@@ -50,8 +54,10 @@ class VkBot:
 
         # Взять фотографию у пользователя
         elif message.upper() == self.commands[1]:
-            self.take_photo()
-            return "ваше фото сохранено"
+            if self.take_photo() == "Saved":
+                return "Ваше фото сохранено"
+            else:
+                return "Пожалуйста, прикрепите фото"
 
         # Сохранить друзей в файл
         elif message.upper() == self.commands[2]:
